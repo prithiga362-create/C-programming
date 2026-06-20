@@ -1,0 +1,107 @@
+#include <LiquidCrystal_I2C.h>
+#define smoke_sensor A0
+#define fire_sensor 8
+#define buzzer 9
+
+bool fire = false;
+int smoke = 0;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(fire_sensor, INPUT);
+  pinMode(buzzer, OUTPUT);
+  lcd.init();       // Initialize the LCD with 16 columns and 2 rows
+  lcd.backlight();  // Turn on the backlight
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(" FIRE AND SMOKE ");
+  delay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("DETECTION SYSTEM");
+  delay(2000);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(" USING ARDUINO ");
+  delay(2000);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("SMOKE : ");
+}
+
+void loop() {
+  smoke = analogRead(smoke_sensor);
+  fire = !digitalRead(fire_sensor);
+  Serial.print("smoke level: ");
+  Serial.println(smoke);
+
+  if (fire == true) {
+    digitalWrite(buzzer, HIGH);
+    Serial.println("FIRE Detected");
+    lcd.setCursor(0, 1);
+    lcd.print("FIRE DETECTED   ");
+    if (smoke <= 450 and fire != true) {
+      lcd.setCursor(8, 0);
+      lcd.print("LOW    ");
+      digitalWrite(buzzer, LOW);
+    }
+
+    else if (smoke > 450 and smoke < 500) {
+      lcd.setCursor(8, 0);
+      lcd.print("MEDIUM ");
+      digitalWrite(buzzer, HIGH);
+      delay(500);
+      digitalWrite(buzzer, LOW);
+      delay(500);
+      digitalWrite(buzzer, HIGH);
+      delay(500);
+      digitalWrite(buzzer, LOW);
+      delay(500);
+
+
+
+    } else if (smoke >= 500) {
+      lcd.setCursor(8, 0);
+      lcd.print("HIGH   ");
+      digitalWrite(buzzer, HIGH);
+    }
+  }
+  if (fire == false) {
+    digitalWrite(buzzer, LOW);
+    lcd.setCursor(0, 1);
+    lcd.print("NO FIRE DETECTED");
+    if (smoke <= 450) {
+      lcd.setCursor(8, 0);
+      lcd.print("LOW    ");
+      digitalWrite(buzzer, LOW);
+    }
+
+    else if (smoke > 450 and smoke < 500) {
+      lcd.setCursor(8, 0);
+      lcd.print("MEDIUM ");
+      digitalWrite(buzzer, HIGH);
+      delay(500);
+      digitalWrite(buzzer, LOW);
+      delay(500);
+      digitalWrite(buzzer, HIGH);
+      delay(500);
+      digitalWrite(buzzer, LOW);
+      delay(500);
+
+
+
+    } else if (smoke >= 500) {
+      lcd.setCursor(8, 0);
+      lcd.print("HIGH   ");
+      digitalWrite(buzzer, HIGH);
+    }
+  }
+
+
+
+
+  delay(500);
+}
