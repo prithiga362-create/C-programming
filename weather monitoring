@@ -1,0 +1,128 @@
+// Include Libraries
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+#include <DHT.h>
+#include <SFE_BMP180.h>
+
+// Pin Definitions
+#define TH 5
+#define Rain 36
+#define Air 34   // MQ135 AO pin
+
+// Blynk Credentials
+char auth[] = "JSmDyTf4JZBelb2LvUeRxKPVWk4wZjav";
+char ssid[] = "Sabarnaa";
+char pass[] = "surendhar";
+
+// LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Sensors
+DHT dht(TH, DHT11);
+SFE_BMP180 bmp;
+
+// Blynk Timer
+BlynkTimer timer;
+WidgetLED airLED(V4);
+
+// Pressure variables
+double T, P;
+char status;
+
+void setup() {
+  Serial.begin(115200);
+
+  Blynk.begin(auth, ssid, pass);
+
+  dht.begin();
+  bmp.begin();
+
+  lcd.init();
+  lcd.backlight();
+
+  pinMode(Rain, INPUT);
+  pinMode(Air, INPUT);
+
+  analogReadResolution(12);
+
+  lcd.setCursor(0, 0);
+  lcd.print("System Loading");
+  delay(3000);
+  lcd.clear();
+
+  // Timers
+  timer.setInterval(2000L, DHT11sensor);
+  timer.setInterval(2000L, rainSensor);
+  timer.setInterval(3000L, pressureSensor);
+  timer.setInterval(2000L, airSensor);
+}
+
+// ---------------- SENSOR FUNCTIONS ----------------
+
+void DHT11sensor() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) return;
+
+  Blynk.virtualWrite(V0, t);
+  Blynk.virtualWrite(V1, h);
+
+  lcd.setCursor(0, 0);
+  lcd.print("T:");
+  lcd.print(t);
+  lcd.print(" H:");
+  lcd.print(h);
+}
+
+void rainSensor() {
+  int rValue = analogRead(Rain);
+  rValue = map(rValue, 0, 4095, 0, 100);
+  rValue = 100 - rValue;
+
+  Blynk.virtualWrite(V2, rValue);
+
+  lcd.setCursor(0, 1);
+  lcd.print("R:");
+  lcd.print(rValue);
+}
+
+void pressureSensor() {
+  status = bmp.startTemperature();
+  if (status) {
+    delay(status);
+    bmp.getTemperature(T);
+
+    status = bmp.startPressure(3);
+    if (status) {
+      delay(status);
+      bmp.getPressure(P, T);
+
+      P = P / 100.0;  // Pa → hPa
+      Blynk.virtualWrite(V3, P);
+
+      lcd.setCursor(8, 1);
+      lcd.print("P:");
+      lcd.print(P);
+    }
+  }
+}
+
+void airSensor() {
+  int airValue = analogRead(Air);
+
+  if (airValue > 2000) {   // Threshold
+    airLED.on();
+  } else {
+    airLED.off();
+  }
+}
+
+// ---------------- LOOP ----------------
+
+void loop() {
+  Blynk.run();
+  timer.run();
+}
